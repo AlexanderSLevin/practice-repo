@@ -44,7 +44,7 @@ Werkzeug==1.0.1
 
 ```
 FROM ubuntu:20.04
-MAINTAINER Artem
+LABEL maintainer="Artem"
 RUN apt-get update -y && apt-get install -y python3-pip python-dev build-essential
 ADD . /flask-app
 WORKDIR /flask-app
@@ -60,9 +60,9 @@ ENTRYPOINT ["python3", "flask-app.py"]
 
 Определяеть базовый образ, в который вы быдете добавлять ваший файлы и что-то доустанавливать
 
-### MAINTAINER
+### LABEL
 
-Просто индикативная команда, функционала не несет
+Добавляет метадату в форме key="value". Произвольные ключи
 
 ### RUN
 
@@ -72,7 +72,7 @@ ENTRYPOINT ["python3", "flask-app.py"]
 
 ### ADD
 
-Добавляет файлы с хоста в строящийся образ
+Добавляет файлы с хоста в строящийся образ. См ниже ADD vs. COPY
 
 ### WORKDIR
 
@@ -80,7 +80,7 @@ ENTRYPOINT ["python3", "flask-app.py"]
 
 ### ENTRYPOINT
 
-команда, которая исполняется при запуске контейнера, вместе а аргументами.
+Команда, которая исполняется при запуске контейнера, вместе а аргументами. По умолчанию `/bin/sh -c`. См. ENTRYPOINT vs. CMD ниже
 
 ## Запуск сборки
 
@@ -209,3 +209,52 @@ Removing intermediate container 71fe39a5aca7
 Successfully built fca0664fc4fa
 Successfully tagged flask-datamove:latest
 ```
+
+
+## Ньюансы докерфайла
+
+### CMD vs ENTRYPOINT
+
+https://stackoverflow.com/questions/21553353/what-is-the-difference-between-cmd-and-entrypoint-in-a-dockerfile
+
+https://docs.docker.com/engine/reference/builder/#understand-how-cmd-and-entrypoint-interact
+
+### ADD vs. COPY
+
+https://stackoverflow.com/questions/24958140/what-is-the-difference-between-the-copy-and-add-commands-in-a-dockerfile
+
+### EXPOSE
+
+Индикативная команда, можно написать порт, на котором слушает сервис, например `EXPOSE 5000`. Но на видимость порта никак не влияет.
+
+### ENV
+
+Установка переменных для последующих команд сборки и для запуска контейнера.
+
+### USER
+
+Устанавливает пользователя для последующих команд сборки и для запуска образа. Пользователь должен существовать в базовом образе, или быть создан до этой команды, e.g. `RUN useradd datamove`.
+
+### ARG
+
+С помощью этой команды можно шаблонизировать докерфайл, то есть использовать в нем переменные. Например:
+
+```
+ARG user1
+RUN useradd $user1
+USER $user1
+```
+
+тогда при сборке можно указать
+
+`$ docker build --build-arg user=datamove .`
+
+### В каком порядке надо указывать команды в докере
+
+На этапе отладки образа надо минимизировать время сборки, т.е. количество команд, которые надо выролнить. Поэтому надо просто добавлять новые команды в конец. В случае, когда добавляется код командой ADD, как у нас, эту команду можно поставить последней. Тогда только олна будет ввыполняться заново при сборке. Остальные команды будут уже закешированы.
+
+### Советы от создателей
+
+https://docs.docker.com/develop/develop-images/dockerfile_best-practices/
+
+
